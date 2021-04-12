@@ -1,0 +1,427 @@
+OSNOVNE FUNKCIJE
+print(np.empty([5,1]))
+print(np.zeros([5,2]))
+print(np.identity(5))
+print(np.eye(5,1))
+
+
+JEDNOSTAVNA i VIŠESTRUKA LINEARNA REGRESIJA---------------------------
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.datasets import load_wine 
+from sklearn import preprocessing
+from sklearn.model_selection import train_test_split
+import seaborn as sns
+from sklearn.linear_model import LinearRegression, HuberRegressor
+from sklearn.metrics import mean_absolute_error, mean_squared_error
+from sklearn.datasets import make_regression
+import numpy.random as rng
+import time
+
+#1. učitati podatke iz .csv, napraviti matricu dizajna i vektor izlaznih podataka
+
+data=pd.read_csv("./Podaci/house_train.csv")
+df = pd.DataFrame(data)
+df = df.dropna()
+m = df.shape[0]
+X = np.ones([m, len(["sqft_living"]) + 1])
+X[:,1:] = preprocessing.scale(df[["sqft_living"]].to_numpy())
+y = preprocessing.scale(df[["price"]].to_numpy().reshape(m,1))
+
+--za višestruku
+data=pd.read_csv("./Podaci/house_train.csv")
+df = pd.DataFrame(data)
+df = df.dropna()
+m = df.shape[0]
+X = np.ones([m, len(["sqft_living", 'bathrooms','bedrooms', 'floors']) + 1])
+X[:,1:] = preprocessing.scale(df[['sqft_living', 'bathrooms','bedrooms', 'floors']].to_numpy())
+y = preprocessing.scale(df[["price"]].to_numpy().reshape(m,1))
+
+#2. usporedite vizualno ulazne i izlazne podatke
+plt.scatter(X[:,1],y)
+
+#3. odrediti parametre theta pomocu metode iz scikit (ne gradijentne)
+reg = LinearRegression(fit_intercept=True).fit(X, y)
+reg.coef_, reg.intercept_
+[theta,cost] = reg.coef_, reg.intercept_
+theta = theta.reshape(-1,1)
+reg.score(X,y)
+
+# 4. Pravac određen 𝜃nula + 𝜃jedan 𝑥  prikažite na grafu
+plt.scatter(X[:,1], y)
+plt.plot(X[:,1], X.dot(theta), color="red")
+
+#5. učitavanje testnih podataka
+data_test=pd.read_csv("./Podaci/house_test.csv")
+df_test = pd.DataFrame(data_test)
+df_test = df_test.dropna()
+m_test = df_test.shape[0]
+X_test = np.ones([m_test, len(["sqft_living"]) + 1])
+X_test[:,1:] = preprocessing.scale(df_test[["sqft_living"]].to_numpy())
+y_test = preprocessing.scale(df_test[["price"]].to_numpy().reshape(m_test,1))
+
+--za višestruku
+data_test=pd.read_csv("./Podaci/house_test.csv")
+df_test = pd.DataFrame(data_test)
+df_test = df_test.dropna()
+m_test = df_test.shape[0]
+X_test = np.ones([m_test, len(["sqft_living", 'bedrooms','bathrooms', 'floors']) + 1])
+X_test[:,1:] = preprocessing.scale(df_test[['sqft_living', 'bedrooms','bathrooms', 'floors']].to_numpy())
+y_test = preprocessing.scale(df_test[["price"]].to_numpy().reshape(m_test,1))
+
+#6.vizualizacija testnih podataka i predikcije za njih
+plt.scatter(X_test[:,1], y_test)
+plt.plot(X_test[:,1], X_test.dot(theta), color="red")
+
+#7. testiranje modela, ispis pogreške
+pogreška = 0
+y_test_prediction = X_test.dot(theta)
+for i,prediction in enumerate(y_test_prediction):
+    pogreška += (prediction -  y_test[i])**2
+print(pogreška/(2*X_test.shape[0]))
+--za višestruku
+Y_test_pred = np.matmul(X_test,theta)
+print(mean_absolute_error(y_test, Y_test_pred))
+print(mean_squared_error(y_test, Y_test_pred))
+
+#8. Određivanje theta pomoću sustava NORMALNIH JEDNADŽBI
+Theta_NJ = np.linalg.inv(np.matmul(X.T,X)).dot((X.T).dot(y))
+print(Theta_NJ)
+# Po koracima 
+XTX = np.matmul(X.T,X)
+invXTX = np.linalg.inv(XTX)
+XTY = X.T.dot(y)
+Theta = invXTX.dot(XTY)
+print(Theta_NJ)
+
+----------------------------------------------------------------------
+
+PODJELA PODATAKA NA DVA SKUPA (dobijemo jedan csv file, treba napraviti testni i trening skup podataka)
+
+data = pd.read_csv('./Podaci/poly_data.csv')
+data.head()
+m = data.shape[0]
+data_train = data.sample(round(0.8*m))
+data_test = data.drop(train.index)
+
+
+POLINOMNA REGRESIJA---------------------------------------------------
+
+#ucitati (ovo dolje je preko podjele jednog filea)
+#kreiranje matrice dizajna i vektora izlaznih podataka
+m = data_train.shape[0]
+X = np.ones([m,4])
+X[:,1] = data_train.to_numpy()[:,0]
+X[:,2] = np.power(data_train.to_numpy()[:,0],2)
+X[:,3] = np.power(data_train.to_numpy()[:,0],3)
+Y = data_train.to_numpy()[:,1].reshape(m,1)
+
+m_test = data_test.shape[0]
+X_test = np.ones([m_test,4])
+X_test[:,1] = data_test.to_numpy()[:,0]
+X_test[:,2] = np.power(data_test.to_numpy()[:,0],2)
+X_test[:,3] = np.power(data_test.to_numpy()[:,0],3)
+Y_test = data_test.to_numpy()[:,1].reshape(m_test,1)
+
+#pronalazak optimalnog theta
+reg = LinearRegression().fit(X, y)
+theta = reg.coef_
+theta = theta.reshape(-1,1)
+
+#grafički prikaz
+def p1(x,theta):
+    return theta[0] + theta[1]*x + theta[2]*(x**2) + theta[3]*(x**3)
+plt.scatter(X[:,1], y[:])
+x = np.arange(0.0, 10.0, 0.01)
+plt.plot(x,[p1(i,theta) for i in x ], color='red')
+
+RAČUNANJE LOSS FUNKCIJE NA JEDNOSTAVNOM PRIMJERU (omjer gubitaka)
+X_b = np.array([1,2,3,4,5,6,7,8,9,10]).reshape(-1,1)
+y_b = np.array([1.5,10,3.6,4.7,5.6,6.8,15,8.7,9.9,10.9]).reshape(-1,1)
+plt.scatter(X_b,y_b)
+reg = LinearRegression().fit(X_b,y_b)
+loss_b = loss(reg.predict(y_b), y_b)
+print(loss_b)
+
+
+PROBLEM KLASIFIKACIJE ------------------------------------------------
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn import preprocessing
+from sklearn.datasets import make_blobs
+from sklearn.linear_model import Perceptron
+
+Perceptron algoritam ------------------------------------------------
+
+#0. učitavamo dane podatke iz fajla
+X = pd.read_csv('./Podaci/2X_a.csv').to_numpy()
+y = pd.read_csv('./Podaci/2y_a.csv').to_numpy()
+plt.scatter(X[:,0],X[:,1], c =y.reshape(-1,) )
+plt.show()
+
+#1. Prikaz podataka (kada sami definiramo X i y)
+X,y = make_blobs(n_samples=100, n_features=2, centers=2)
+y = np.array([-1 if i ==0 else 1 for i in y])
+plt.scatter(X[:,0], X[:,1], c = y)
+#plt.plot(np.arange(0,4), np.arange(0,4)) 
+plt.show()
+
+#2. Model
+perc = Perceptron(fit_intercept = False)
+perc.fit(X,y)
+print(perc.coef_, perc.intercept_)
+
+#3. Grafički prikaz
+x = np.arange(np.min(X)-1, np.max(X)+1)
+plt.scatter(X[:,0], X[:,1], c = y)
+plt.plot(x, (-perc.coef_[0][0]/perc.coef_[0][1])*x)
+plt.show()
+
+#4. Ocjena modela
+perc.score(X,y)
+
+
+#Zadan nam je model perceptrona, theta=[theta1, theta2]. Nacrtajte pravac definiran s theta. Klasificira li ispravno podatke X s y (zadani X i y)
+
+theta2 = 3
+theta1 = 2
+theta = np.array([theta1,theta2]).reshape(-1,1)
+xx = np.random.uniform(-1,1,(50,1))
+yy = -xx*(theta1/theta2)
+plt.plot(xx,yy, label='pravac')
+plt.quiver(*[0,0], *theta, scale=5, label='theta')
+plt.legend()
+plt.gca().set_aspect('equal')  
+plt.show()
+
+X = np.array([(0,-0.8), (-1,0), (-0.5, -0.5), (0,1), (0.5,0.8)])
+y = np.array([-1, -1, -1, -1, 1])
+--provjeravamo jesu podaci ispravno klasificirani-usporedjujemo c i y
+print(np.sign(X.dot(theta)))
+plt.scatter(X[:,0], X[:,1], c =y)
+
+#Zadane theta=[theta1, theta2, theta0], X i y. Implementirati NAND npr
+theta2 = 3
+theta1 = 2.5
+theta0 = -4
+theta = np.array([theta1,theta2, theta0]).reshape(-1,1)
+# Podaci
+X=np.array([(0,0), (0,1), (1,0), (1,1)])
+y = np.array([1,1,1,0])
+# plot
+xx = np.random.uniform(-0.5,1.5,(50,1))
+yy = -xx*(theta1/theta2) - (theta0/theta2) 
+plt.plot(xx,yy, color='orange', label='Pravac')
+plt.quiver(*[0,0], *theta, color=['purple'], scale=5, label='theta')
+plt.scatter(X[:,0], X[:,1], c = y)
+plt.legend()
+plt.gca().set_aspect('equal')  
+plt.show()
+
+
+SKALIRANJE PODATAKA --------------------------------------------------
+# 1. Generirajmo nekoliko podataka
+X,_ = make_circles(50)
+X = X+5
+plt.scatter(X[:,0],X[:,1])
+plt.gca().set_aspect('equal') 
+plt.show()
+# 2. Skalirajmo podatke
+X_scale = preprocessing.scale(X)
+plt.scatter(X_scale[:,0],X_scale[:,1])
+plt.gca().set_aspect('equal')  
+plt.show()
+# 3. Što se zaista dogodilo
+mean = np.mean(X, axis =0)
+var = np.var(X, axis=0)
+X_my_scale = (X-mean)/np.sqrt(var)
+plt.scatter(X_my_scale[:,0],X_my_scale[:,1])
+plt.gca().set_aspect('equal')  
+plt.show()
+
+
+
+
+
+
+SVM ------------------------------------------------------------------
+
+from sklearn.svm import SVC, LinearSVC
+import matplotlib.pyplot as plt
+from sklearn.datasets import make_blobs
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression
+
+#Ako imamo zadanu geom.marginu; theta0 i trebamo pokazati samo podatke
+#1. kreiranje podataka
+
+X,y = make_blobs(n_samples = 10, n_features = 2, centers = 2, random_state=9)
+y = np.array([-1 if i ==0 else 1 for i in y])
+plt.scatter(X[:,0], X[:,1], c = y)
+plt.show()
+
+#2. prikaz margine
+theta1 = 0.15
+theta2 = -0.08
+theta0 = 0.51
+theta = np.array([theta1,theta2]).reshape(-1,1)
+xx = np.random.uniform(-10,5,(50,1))
+yy = -xx*(theta1/theta2) - (theta0/theta2)
+plt.plot(xx,yy, color='darkblue', label='Pravac')
+plt.quiver(*[xx[8], yy[8]], *theta, color=['deeppink'], scale=1, label='theta')
+plt.scatter(X[:,0], X[:,1], c = y, cmap='PiYG')
+plt.legend()
+plt.gca().set_aspect('equal')  
+plt.show()
+
+#SVC (tražimo marginu)
+
+from sklearn.datasets import make_blobs
+from sklearn.linear_model import LogisticRegression
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.svm import LinearSVC, SVC
+from sklearn.model_selection import train_test_split
+from sklearn.datasets import make_regression, make_classification
+from sklearn import preprocessing
+import seaborn as sns
+from sklearn.metrics import accuracy_score
+
+#1. Generiramo podatke i prikazujemo (ispod za ucitane)
+X = np.array([[2,3.5], [2,3], [1,4], [3,3], [5,2], [4,2.25], [6,3]])
+y = np.array([1, 1, 1, 1, -1, -1, -1])
+plt.scatter(X[:,0], X[:,1], c=y)
+
+#2.Instanciranje SVC modela
+clf = SVC(kernel = 'linear')
+clf.fit(X, y)
+
+#3.
+theta = clf.coef_[0]
+theta_0 =  clf.intercept_[0]
+print("theta = ", clf.coef_, clf.intercept_)
+
+# support_vectors_ - potporni vektori
+# support_ - indeksi potpornih vektora
+# n_support_ - broj potpornih vektora za svaku klasu
+print(clf.support_vectors_)
+print("Gamma = ",np.min(np.abs((X.dot(theta)+theta_0)/np.linalg.norm(theta))) )
+
+xx = np.linspace(1,5)
+yy =  -theta[0]/theta[1]* xx - theta_0 / theta[1]
+plt.plot(xx, yy, 'k-')
+plt.scatter(X[:,0], X[:,1], c=['red' if i==1 else 'yellow' for i in y])
+plt.scatter(clf.support_vectors_[:,0], clf.support_vectors_[:,1],marker='*')
+plt.show()
+
+
+#1. Učitavamo podatke i prikazujemo
+def visualize_svm(X, y, clf):
+ theta = clf.coef_[0]
+    theta_0 = clf.intercept_[0]
+    print(‘theta= ', clf.coef_[0], clf.intercept_[0])
+
+    #print("Potporni vektori: \n", clf.support_vectors_)
+    print("Gamma = ",np.min(np.abs((X.dot(theta)+theta_0)/np.linalg.norm(theta))) )
+
+    xx = np.linspace(np.min(X[:,0]),np.max(X[:,0]))
+    yy =  -theta[0]/theta[1]* xx - theta_0 / theta[1]
+    plt.plot(xx, yy, '-')
+    plt.scatter(X[:,0], X[:,1], c=['red' if i==1 else 'blue' for i in y]) 
+    plt.scatter(clf.support_vectors_[:,0], clf.support_vectors_[:,1],marker='*', color="black")
+    plt.show()
+
+#2. Podaci
+X = pd.read_csv('X_a.csv').to_numpy()
+y = pd.read_csv('y_a.csv').to_numpy().reshape(-1,)
+
+#3. Model
+clf = SVC(kernel = 'linear')
+clf.fit(X, y)
+
+#4. Poziv funkcije
+visualize_svm(X,y, clf)
+
+
+#1. Dijeljenje podataka na testne i trening nakon ucitanog filea
+X = pd.read_csv(data_path+'X_e.csv').to_numpy()
+y = pd.read_csv(data_path+'y_e.csv').to_numpy().reshape(-1,)
+y=2*y-1
+X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=0.2)
+
+#2. Model
+clf = SVC(kernel = 'linear')
+clf.fit(X_train, y_train)
+
+#3. Poziv funkcije
+visualize_svm(X_train,y_train, clf)
+
+
+#LOGISTIČKA REGRESIJA--------------------------------------------------------
+import matplotlib.pyplot as plt
+from sklearn.linear_model import LogisticRegression, RidgeClassifier, LinearRegression
+from sklearn.datasets import make_blobs, load_digits
+from sklearn.metrics import accuracy_score, recall_score, precision_score
+from sklearn.model_selection import train_test_split
+from sklearn.svm import SVC
+
+#1. Definiramo podatke (imamo zadan theta) i prikazemo ih
+X=np.array([[-3.78,3.96],[-3.98,3.8],[-0.95,5.18],[-2.71,4],[-0.6,4.31],[-2.58,4.65],[-2.54,4.28],[-3.55,1.62],[-3.13,4.4],[-1.93,5.62]])
+y = np.array([-1, -1, 1, 1, 1, 1, -1, -1, -1, 1])
+plt.scatter(X[:,0], X[:,1], c = y)
+plt.show()
+theta = np.array([0.325, 1.08, 0.59])
+
+#2. model funkcija h_theta(x)
+def h(z):
+    return (1.0 / (1.0 + np.exp(-z)))
+
+# racunamo theta^T * x
+y_pred = h(theta[1:].dot(X[0].reshape(-1,1)) + theta[0])
+if y_pred>=0.5: print('predikcija 1', 'stvarna', y[0])
+else: print('predikcija -1', ' stvarna', y[0])
+
+# Tocke x,h(x)
+xrange = np.arange(-3, 3, 0.01)
+plt.plot(xrange, h(xrange))
+# predikcija = X*theta
+# Tocke (predikcija, h(predikcija))
+plt.scatter(X.dot(theta[1:]) + theta[0], h(X.dot(theta[1:]) + theta[0]))
+plt.show()
+#funkcija h preslika sve na <0,1>
+
+#LOSS funkcija
+def J(y,yp):
+    return np.log(1+np.exp(-y*yp))
+#Stvarna vr. Je 1. Predikcije od 0 do 1, vidimo da kako je predikcija bliža 1 vrijednost funkcije gubitka se smanjuje
+
+predikcije = np.arange(0.0, 1, 0.01)
+for i,p in enumerate(list(predikcije)):
+    plt.scatter(i,J(1,p))
+plt.show()
+
+Gotova Logistička
+def logistic_regression(X,y, digit):
+    y = np.array([1 if i ==  digit else 0 for i in y ])
+    log_reg = LogisticRegression(max_iter=900, solver='lbfgs').fit(X,y)
+    return log_reg
+def numbOfCorrect(y_test, y_pred):
+    return np.sum(np.array([y_test==y_pred]))
+models = []
+for i in range(10):
+    log = logistic_regression(x_train, y_train, i)
+    models.append(log)
+predictions = []
+for model in models:
+    y_pred = model.predict_proba(x_test)
+    predictions.append(y_pred[:,1])
+predictions= np.array(predictions)
+
+y_predictions = np.argmax(predictions,axis=0)
+
